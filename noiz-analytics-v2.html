@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noiz AI — 客服洞察后台</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a;
+  --surface: #131313;
+  --surface2: #1a1a1a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.05);
+  --text: #f0f0f0;
+  --muted: #777;
+  --dim: #3a3a3a;
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+header {
+  padding: 0 32px;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border2);
+  background: rgba(10,10,10,0.9);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 10;
+}
+.logo { font-size: 15px; font-weight: 500; letter-spacing: -0.02em; }
+.logo span { color: var(--muted); font-weight: 300; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.month-select {
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 12px; font-family: var(--mono); font-size: 12px;
+  cursor: pointer; outline: none;
+}
+.month-select:focus { border-color: rgba(255,255,255,0.2); }
+.refresh-btn {
+  background: var(--surface2); color: var(--muted);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 14px; font-size: 13px; font-family: var(--font);
+  cursor: pointer; transition: all 0.2s;
+}
+.refresh-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+
+.page-title { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; margin-bottom: 6px; }
+.page-sub { font-size: 13px; color: var(--muted); margin-bottom: 32px; }
+
+/* METRIC CARDS */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 20px;
+}
+.metric-label { font-size: 11px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+.metric-val { font-size: 32px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; margin-bottom: 6px; }
+.metric-sub { font-size: 12px; color: var(--muted); }
+.metric-val.green { color: var(--green); }
+.metric-val.red { color: var(--red); }
+.metric-val.amber { color: var(--amber); }
+
+/* TWO COL */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.full-col { margin-bottom: 16px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 22px;
+}
+.card-title {
+  font-size: 12px; font-family: var(--mono); color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 18px;
+}
+
+/* BAR CHART */
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bar-label { font-size: 12px; color: var(--muted); width: 120px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; height: 6px; background: var(--dim); border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; background: var(--text); transition: width 0.6s ease; }
+.bar-fill.escalated { background: var(--red); }
+.bar-count { font-size: 12px; color: var(--muted); font-family: var(--mono); width: 28px; text-align: right; flex-shrink: 0; }
+
+/* LOG TABLE */
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th {
+  text-align: left; font-size: 11px; font-family: var(--mono);
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 0 12px 12px; border-bottom: 1px solid var(--border2);
+}
+.log-table td {
+  padding: 11px 12px; border-bottom: 1px solid var(--border2);
+  font-size: 13px; color: var(--text); vertical-align: top;
+}
+.log-table tr:last-child td { border-bottom: none; }
+.log-table tr:hover td { background: rgba(255,255,255,0.02); }
+.status-pill {
+  display: inline-block; padding: 2px 9px; border-radius: 99px;
+  font-size: 11px; font-family: var(--mono);
+}
+.status-pill.ok { background: rgba(34,197,94,0.12); color: var(--green); }
+.status-pill.esc { background: rgba(239,68,68,0.12); color: var(--red); }
+.q-text { max-width: 340px; line-height: 1.5; color: var(--text); }
+.time-text { color: var(--muted); font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+
+/* AI ANALYSIS */
+.analysis-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px;
+  font-size: 13.5px; line-height: 1.8; color: #d0d0d0;
+  min-height: 120px; white-space: pre-wrap;
+}
+.analysis-box.loading { color: var(--muted); font-style: italic; }
+
+.analyze-btn {
+  background: var(--text); color: var(--bg);
+  border: none; border-radius: 9px;
+  padding: 9px 22px; font-size: 13px; font-weight: 500;
+  font-family: var(--font); cursor: pointer;
+  transition: opacity 0.2s; margin-top: 14px;
+}
+.analyze-btn:hover { opacity: 0.85; }
+.analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.empty-state {
+  text-align: center; padding: 48px 20px;
+  color: var(--muted); font-size: 13px; line-height: 1.8;
+}
+.empty-state p { margin-bottom: 6px; }
+
+/* STREAMING CURSOR */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor { display: inline-block; width: 8px; height: 14px; background: var(--muted); border-radius: 2px; margin-left: 3px; vertical-align: middle; animation: blink 1s infinite; }
+
+/* SEED BANNER */
+.seed-banner {
+  background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
+  font-size: 12.5px; color: var(--amber); line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Noiz <span>AI</span> · 客服洞察</div>
+  <div class="header-right">
+    <select class="month-select" id="monthSel"></select>
+    <button class="refresh-btn" onclick="loadData()">↻ 刷新</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-title">客服数据洞察</div>
+  <div class="page-sub" id="dataSource">从 chatbot 对话记录中读取数据...</div>
+
+  <div id="seedBanner" class="seed-banner" style="display:none">
+    ⚠️ 当前为演示数据。当真实用户通过 chatbot 提问后，这里会显示真实对话记录和统计。
+  </div>
+
+  <div class="metrics" id="metricsArea">
+    <div class="metric-card"><div class="metric-label">总对话数</div><div class="metric-val" id="mTotal">—</div><div class="metric-sub">本月</div></div>
+    <div class="metric-card"><div class="metric-label">自助解决率</div><div class="metric-val green" id="mResolve">—</div><div class="metric-sub">resolved = true</div></div>
+    <div class="metric-card"><div class="metric-label">升级转人工</div><div class="metric-val red" id="mEsc">—</div><div class="metric-sub">fallback 触发次数</div></div>
+    <div class="metric-card"><div class="metric-label">最高频问题</div><div class="metric-val amber" id="mTopCat" style="font-size:18px;padding-top:6px">—</div><div class="metric-sub" id="mTopSub">—</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">问题分类分布</div>
+      <div id="catChart"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">升级问题 TOP</div>
+      <div id="escChart"></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <div class="card-title">最近对话记录</div>
+    <div id="logArea"></div>
+  </div>
+
+  <div class="full-col card" style="margin-top:16px">
+    <div class="card-title">AI 智能分析 · 客诉洞察</div>
+    <div class="analysis-box loading" id="analysisBox">点击下方按钮，Claude 将自动分析本月用户问题，生成客诉洞察报告。</div>
+    <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">生成本月洞察报告</button>
+  </div>
+</main>
+
+<script>
+const SEED_DATA = [
+  {ts:"2025-04-01T09:12:00Z",userQ:"怎么取消订阅？",botReply:"步骤：1. 进入「订阅」...",resolved:true},
+  {ts:"2025-04-01T10:34:00Z",userQ:"支付成功但积分没到账",botReply:"请先等5-10分钟...",resolved:true},
+  {ts:"2025-04-02T08:22:00Z",userQ:"我要退款，现在就退",botReply:"需要人工协助",resolved:false},
+  {ts:"2025-04-02T11:05:00Z",userQ:"API key怎么获取？",botReply:"在开发者平台...",resolved:true},
+  {ts:"2025-04-02T14:17:00Z",userQ:"声音生成有杂音怎么办",botReply:"可以切换v1模型或重新生成",resolved:true},
+  {ts:"2025-04-03T09:00:00Z",userQ:"发票在哪里下载",botReply:"账单→概览→最近发票",resolved:true},
+  {ts:"2025-04-03T10:45:00Z",userQ:"我的积分莫名少了很多，这不可接受",botReply:"需要人工协助",resolved:false},
+  {ts:"2025-04-03T15:30:00Z",userQ:"能不能取消订阅退剩余天数的钱",botReply:"需要人工协助",resolved:false},
+  {ts:"2025-04-04T09:20:00Z",userQ:"生成的中文里混了英文怎么办",botReply:"检查特殊字符，分段输入",resolved:true},
+  {ts:"2025-04-04T11:00:00Z",userQ:"如何升级到Pro？",botReply:"点击左侧Upgrade...",resolved:true},
+  {ts:"2025-04-05T08:40:00Z",userQ:"有没有APP",botReply:"目前以网页为主，后续规划中",resolved:true},
+  {ts:"2025-04-05T10:20:00Z",userQ:"credits是按什么扣的",botReply:"1个中文字符≈2 Credits",resolved:true},
+  {ts:"2025-04-06T09:10:00Z",userQ:"导出失败一直转圈",botReply:"刷新页面/换Chrome/换网络",resolved:true},
+  {ts:"2025-04-06T11:30:00Z",userQ:"视频配音老是失败",botReply:"通常是网络问题，稍后再试",resolved:true},
+  {ts:"2025-04-07T14:00:00Z",userQ:"我已经续费了但套餐还是旧的",botReply:"需要人工协助",resolved:false},
+  {ts:"2025-04-07T16:20:00Z",userQ:"能不能删除我的账号",botReply:"发邮件到contact@noiz.ai...",resolved:true},
+  {ts:"2025-04-08T09:00:00Z",userQ:"克隆音色不够像怎么改善",botReply:"安静环境录音，8-13秒",resolved:true},
+  {ts:"2025-04-08T10:30:00Z",userQ:"语速太快怎么调",botReply:"右侧高级设置0.9-1.1",resolved:true},
+  {ts:"2025-04-09T08:20:00Z",userQ:"network error是什么问题",botReply:"切换网络/Chrome/避开高峰",resolved:true},
+  {ts:"2025-04-09T14:00:00Z",userQ:"退款申请了5天了还没处理",botReply:"需要人工协助",resolved:false},
+];
+
+function getMonthKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function getMonthLabel(key) {
+  const [y,m] = key.split('-');
+  return `${y}年${parseInt(m)}月`;
+}
+
+let allLogs = [];
+let usingSeed = false;
+
+async function loadData() {
+  const sel = document.getElementById('monthSel');
+  const month = sel.value;
+  const key = `noiz_logs:${month}`;
+  let logs = [];
+  usingSeed = false;
+
+  try {
+    const r = await window.storage.get(key, true);
+    if(r && r.value) {
+      logs = JSON.parse(r.value);
+    }
+  } catch(e) {}
+
+  if(logs.length === 0) {
+    const curMonth = getMonthKey(new Date());
+    if(month === curMonth) {
+      logs = SEED_DATA;
+      usingSeed = true;
+    }
+  }
+
+  allLogs = logs;
+  document.getElementById('seedBanner').style.display = usingSeed ? 'flex' : 'none';
+  document.getElementById('dataSource').textContent = usingSeed
+    ? `演示数据 · ${getMonthLabel(month)}`
+    : `共 ${logs.length} 条对话 · ${getMonthLabel(month)}`;
+
+  renderMetrics(logs);
+  renderCatChart(logs);
+  renderEscChart(logs);
+  renderLog(logs);
+
+  const box = document.getElementById('analysisBox');
+  box.className = 'analysis-box loading';
+  box.textContent = '点击下方按钮，Claude 将自动分析本月用户问题，生成客诉洞察报告。';
+  document.getElementById('analyzeBtn').disabled = false;
+}
+
+function categorize(q) {
+  const t = (q||'').toLowerCase();
+  if(/退款|refund/.test(t)) return '退款';
+  if(/取消|cancel/.test(t)) return '取消订阅';
+  if(/订阅|升级|subscribe|pro|plan/.test(t)) return '订阅购买';
+  if(/api|key|接口|文档/.test(t)) return 'API';
+  if(/发票|invoice|账单/.test(t)) return '发票';
+  if(/删除|账号|delete/.test(t)) return '删除账号';
+  if(/积分|credits|credit/.test(t)) return '积分';
+  if(/音色|克隆|声音/.test(t)) return '音色问题';
+  if(/导出|配音|视频/.test(t)) return '导出/配音';
+  if(/卡|network|加载|error/.test(t)) return '技术问题';
+  return '其他';
+}
+
+function renderMetrics(logs) {
+  const total = logs.length;
+  const resolved = logs.filter(l=>l.resolved).length;
+  const esc = total - resolved;
+  const resolveRate = total ? Math.round(resolved/total*100) : 0;
+
+  document.getElementById('mTotal').textContent = total;
+  document.getElementById('mResolve').textContent = resolveRate + '%';
+  document.getElementById('mEsc').textContent = esc;
+
+  const catCount = {};
+  logs.forEach(l => { const c = categorize(l.userQ); catCount[c] = (catCount[c]||0)+1; });
+  const top = Object.entries(catCount).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('mTopCat').textContent = top ? top[0] : '—';
+  document.getElementById('mTopSub').textContent = top ? `${top[1]} 次提问` : '—';
+}
+
+function renderCatChart(logs) {
+  const catCount = {};
+  logs.forEach(l => { const c = categorize(l.userQ); catCount[c] = (catCount[c]||0)+1; });
+  const sorted = Object.entries(catCount).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0]?.[1] || 1;
+  const el = document.getElementById('catChart');
+  if(!sorted.length) { el.innerHTML = '<div class="empty-state"><p>暂无数据</p></div>'; return; }
+  el.innerHTML = sorted.map(([label, count]) => `
+    <div class="bar-row">
+      <div class="bar-label" title="${label}">${label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/max*100)}%"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`).join('');
+}
+
+function renderEscChart(logs) {
+  const escLogs = logs.filter(l=>!l.resolved);
+  const catCount = {};
+  escLogs.forEach(l => { const c = categorize(l.userQ); catCount[c] = (catCount[c]||0)+1; });
+  const sorted = Object.entries(catCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const max = sorted[0]?.[1] || 1;
+  const el = document.getElementById('escChart');
+  if(!sorted.length) { el.innerHTML = '<div class="empty-state"><p>暂无升级问题</p></div>'; return; }
+  el.innerHTML = sorted.map(([label, count]) => `
+    <div class="bar-row">
+      <div class="bar-label" title="${label}">${label}</div>
+      <div class="bar-track"><div class="bar-fill escalated" style="width:${Math.round(count/max*100)}%"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`).join('');
+}
+
+function renderLog(logs) {
+  const el = document.getElementById('logArea');
+  const recent = [...logs].reverse().slice(0, 30);
+  if(!recent.length) {
+    el.innerHTML = '<div class="empty-state"><p>暂无对话记录</p><p>用户通过 chatbot 提问后，记录将显示在这里</p></div>';
+    return;
+  }
+  el.innerHTML = `<table class="log-table">
+    <thead><tr>
+      <th>时间</th>
+      <th>用户问题</th>
+      <th>分类</th>
+      <th>状态</th>
+    </tr></thead>
+    <tbody>
+      ${recent.map(l => {
+        const d = new Date(l.ts);
+        const timeStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        const cat = categorize(l.userQ);
+        return `<tr>
+          <td class="time-text">${timeStr}</td>
+          <td class="q-text">${esc(l.userQ)}</td>
+          <td><span style="color:var(--muted);font-size:12px">${cat}</span></td>
+          <td><span class="status-pill ${l.resolved?'ok':'esc'}">${l.resolved?'已解决':'转人工'}</span></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function runAnalysis() {
+  if(!allLogs.length) return;
+  const btn = document.getElementById('analyzeBtn');
+  const box = document.getElementById('analysisBox');
+  btn.disabled = true;
+  box.className = 'analysis-box loading';
+  box.innerHTML = '正在分析中...<span class="cursor"></span>';
+
+  const total = allLogs.length;
+  const resolved = allLogs.filter(l=>l.resolved).length;
+  const esc = total - resolved;
+  const resolveRate = total ? Math.round(resolved/total*100) : 0;
+
+  const catCount = {};
+  allLogs.forEach(l => { const c = categorize(l.userQ); catCount[c]=(catCount[c]||0)+1; });
+  const catSummary = Object.entries(catCount).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}: ${v}次`).join('，');
+
+  const escQuestions = allLogs.filter(l=>!l.resolved).map(l=>l.userQ).join('\n- ');
+  const sampleQs = allLogs.slice(0,20).map(l=>l.userQ).join('\n- ');
+
+  const prompt = `你是 Noiz AI 的产品运营，下面是本月 chatbot 客服数据，请生成一份简洁的客诉洞察报告。
+
+数据摘要：
+- 总对话数：${total}
+- 自助解决率：${resolveRate}%
+- 转人工次数：${esc}
+- 问题分类分布：${catSummary}
+
+需要转人工的问题（部分样本）：
+- ${escQuestions || '无'}
+
+用户提问样本（前20条）：
+- ${sampleQs}
+
+请输出：
+1. 本月客服健康度评估（1-2句）
+2. TOP 3 高频问题及用户痛点分析
+3. 转人工的主要原因分析
+4. 给产品/运营的 2-3 条可执行建议
+
+风格：简洁、直接、有洞察，不要官话，像内部周报。`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        stream: true,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    box.className = 'analysis-box';
+    box.textContent = '';
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while(true) {
+      const { done, value } = await reader.read();
+      if(done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for(const line of lines) {
+        if(line.startsWith('data: ')) {
+          const data = line.slice(6).trim();
+          if(data === '[DONE]') break;
+          try {
+            const j = JSON.parse(data);
+            if(j.type === 'content_block_delta' && j.delta?.text) {
+              box.textContent += j.delta.text;
+            }
+          } catch(e){}
+        }
+      }
+    }
+
+  } catch(e) {
+    box.className = 'analysis-box loading';
+    box.textContent = '分析失败，请检查网络连接后重试。';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '重新生成';
+}
+
+// Init month selector
+function initMonthSel() {
+  const sel = document.getElementById('monthSel');
+  const now = new Date();
+  for(let i=0; i<6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = getMonthKey(d);
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = getMonthLabel(key);
+    sel.appendChild(opt);
+  }
+  sel.onchange = loadData;
+}
+
+initMonthSel();
+loadData();
+</script>
+</body>
+</html>
