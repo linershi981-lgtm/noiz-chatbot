@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noiz AI Chatbot — 预览</title>
+<style>
+  body { margin: 0; background: #f5f5f5; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .hint { text-align: center; color: #999; font-size: 14px; }
+  .hint h2 { font-size: 18px; color: #333; margin-bottom: 8px; font-weight: 400; }
+  .hint p { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="hint">
+  <h2>Noiz AI Chatbot Widget v3</h2>
+  <p>点击右下角黑色气泡按钮开始体验</p>
+  <p style="font-size:12px;margin-top:12px;color:#bbb">功能：快捷问题 · 满意度调研 · 三语言切换 · 邮件直发</p>
+</div>
+<!--
+=======================================================
+  Noiz AI 客服 Chatbot Widget v3
+  使用说明：将本文件全部内容粘贴到 noiz.ai 每个页面的 </body> 标签之前。
+
+  ⚠️ 上线前必须修改一处：
+  找到 callAPI 函数，把 fetch 地址从
+  'https://api.anthropic.com/v1/messages'
+  改为后端同学提供的接口地址，并删掉 x-api-key 那行。
+=======================================================
+-->
+
+<!-- Noiz Chatbot Widget: START -->
+<style>
+.chat-window{width:360px;height:540px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.3);animation:cwUp 0.2s ease;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;position:fixed;bottom:88px;right:24px;z-index:9998}
+@keyframes cwUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.cw-header{padding:12px 15px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;background:#fff;flex-shrink:0}
+.cw-av{width:32px;height:32px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cw-hi{flex:1}.cw-hi h3{font-size:13.5px;font-weight:500;color:#111;line-height:1.3;margin:0}.cw-hi p{font-size:11px;color:#22c55e;margin:0}
+.cw-hbtns{display:flex;align-items:center;gap:4px}
+.cw-langbtn{background:none;border:none;cursor:pointer;color:#aaa;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;position:relative}
+.cw-langbtn:hover{background:#f5f5f5;color:#666}
+.lang-menu{position:absolute;top:32px;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);overflow:hidden;z-index:100;min-width:110px}
+.lang-opt{display:block;padding:8px 14px;font-size:12.5px;color:#333;cursor:pointer;white-space:nowrap;transition:background .1s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.lang-opt:hover{background:#f5f5f5}.lang-opt.active{font-weight:500;color:#111}
+.cw-x{background:none;border:none;cursor:pointer;color:#aaa;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1}
+.cw-x:hover{background:#f5f5f5;color:#666}
+.cw-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;background:#fafafa}
+.cw-msgs::-webkit-scrollbar{width:3px}.cw-msgs::-webkit-scrollbar-thumb{background:#e0e0e0;border-radius:4px}
+.mr{display:flex;gap:7px;align-items:flex-end}.mr.u{flex-direction:row-reverse}
+.mi{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500}
+.mi.b{background:#111}.mi.u2{background:#e5e7eb;color:#666}
+.mb{max-width:248px;padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.55;color:#111}
+.mr.b .mb{background:#fff;border:1px solid #eee;border-bottom-left-radius:4px}
+.mr.u .mb{background:#111;color:#fff!important;border-bottom-right-radius:4px}
+.mt{font-size:10px;color:#ccc;padding:2px 0}.mr.b .mt{margin-left:33px}.mr.u .mt{text-align:right;margin-right:33px}
+.typ-r{display:flex;gap:7px;align-items:flex-end}
+.typ-b{background:#fff;border:1px solid #eee;border-radius:14px;border-bottom-left-radius:4px;padding:10px 13px;display:flex;gap:4px}
+.td{width:6px;height:6px;border-radius:50%;background:#ccc;animation:tdot 1.2s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.qchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.qchip{background:transparent;border:1px solid #d1d5db;border-radius:8px;padding:6px 10px;font-size:12px;color:#444;cursor:pointer;transition:all .15s;font-family:inherit;display:block}
+.qchip:hover{background:#f0f0f0;border-color:#999;color:#111}
+.survey-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:13px 14px;max-width:280px}
+.survey-card h4{font-size:13px;font-weight:500;color:#111;margin-bottom:10px}
+.survey-row{margin-bottom:10px}
+.survey-label{font-size:12px;color:#555;margin-bottom:5px;line-height:1.4}
+.stars{display:flex;gap:4px}
+.star{width:26px;height:26px;cursor:pointer;color:#d1d5db;font-size:20px;line-height:1;background:none;border:none;padding:0;transition:color .1s}
+.star.on,.star:hover{color:#f59e0b}
+.rating-row{display:flex;gap:3px}
+.rstar{width:22px;height:22px;cursor:pointer;color:#d1d5db;font-size:16px;line-height:1;background:none;border:none;padding:0;transition:color .1s}
+.rstar.on,.rstar:hover{color:#f59e0b}
+.survey-textarea{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;resize:none;outline:none;color:#111;box-sizing:border-box}
+.survey-textarea:focus{border-color:#999}
+.survey-submit{width:100%;padding:8px;background:#111;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s;margin-top:4px}
+.survey-submit:hover{opacity:.8}
+.fb-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:13px 14px;max-width:268px}
+.fb-card h4{font-size:13px;font-weight:500;color:#111;margin-bottom:5px}
+.fb-card p{font-size:12px;color:#888;line-height:1.5;margin-bottom:10px}
+.fb-hint{font-size:11px;color:#aaa;line-height:1.5;margin:0 0 8px!important}
+.fbb{display:flex;align-items:center;gap:7px;width:100%;padding:8px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;text-decoration:none;margin-bottom:6px;border:1px solid;transition:opacity .15s;color:inherit;font-family:inherit}
+.fbb:hover{opacity:.75}.fbb:last-child{margin-bottom:0}
+.fbb.dk{background:#111;color:#fff;border-color:#111}
+.fbb.lt{background:#f5f5f5;color:#333;border-color:#e5e7eb}
+.fbb.gh{background:transparent;color:#999;border-color:#eee;font-weight:400}
+.cw-inp{padding:11px 13px;border-top:1px solid #f0f0f0;display:flex;gap:8px;align-items:flex-end;background:#fff;flex-shrink:0;position:relative}
+.cw-ta{flex:1;border:1px solid #e5e7eb;border-radius:10px;padding:8px 11px;font-size:13px;font-family:inherit;resize:none;outline:none;line-height:1.4;max-height:80px;color:#111;background:#fff}
+.cw-ta:focus{border-color:#999}.cw-ta::placeholder{color:#ccc}
+.cw-sb{width:34px;height:34px;border-radius:9px;background:#111;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s}
+.cw-sb:hover{opacity:.75}.cw-sb:disabled{opacity:.3;cursor:not-allowed}
+.cw-toast{position:absolute;top:-34px;right:13px;background:#111;color:#fff;font-size:11.5px;padding:5px 11px;border-radius:7px;opacity:0;transition:opacity .2s;pointer-events:none}
+.cw-toast.show{opacity:1}
+.cw-wrap{position:fixed;bottom:24px;right:24px;z-index:9999}
+.cw-tog{width:52px;height:52px;border-radius:50%;background:#111;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:transform .15s;position:relative}
+.cw-tog:hover{transform:scale(1.06)}
+.cw-badge{position:absolute;top:-2px;right:-2px;width:17px;height:17px;border-radius:50%;background:#ef4444;color:#fff;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;border:2px solid #fff;pointer-events:none}
+code.ic{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:12px;font-family:monospace}
+</style>
+
+<script>
+(function(){
+
+/* ─── I18N ─── */
+var I18N = {
+  zh: {
+    title:'Noiz 客服助手', online:'● 在线',
+    welcome:'你好！我是 Noiz 客服助手，有什么可以帮你的？',
+    placeholder:'输入问题，Enter 发送…', copied:'已复制',
+    chips:['如何开发票？','如何使用 API？','如何取消订阅？','退款规则是什么？','用户满意度调研 ✦'],
+    faqLabel:'常见问题',
+    fbTitle:'需要更多帮助？', fbBody:'这个问题需要人工进一步协助，请通过以下方式联系我们：',
+    fbEmail:'邮件支持 contact@noiz.ai', fbFeedback:'提交反馈',
+    fbHint:'💡 后台反馈更适合：产品报错、AI 结果异常、功能建议',
+    fbCopy:'复制我的问题', netErr:'网络出现了一点问题，请稍后再试。',
+    surveyTitle:'用户满意度调研',
+    surveyQ1:'您会给 NOIZ 几颗星？',
+    surveyQ2:'您对文本转语音的使用如何评价？',
+    surveyQ2a:'A 像真人一般自然（1-5分）', surveyQ2b:'B 语气和停顿很到位（1-5分）',
+    surveyQ2c:'C 声音清晰（1-5分）', surveyQ2d:'D 读音准确（1-5分）',
+    surveyQ2e:'E 其他（欢迎吐槽和鼓励～）',
+    surveyQ3:'您对音色设计、音频生成等能力如何评价？',
+    surveyQ3a:'用了，我是资深玩家', surveyQ3b:'用了，但是感觉效果一般',
+    surveyQ3c:'用了，但是用不到', surveyQ3d:'没用（填写原因）',
+    surveyQ4low:'抱歉让您失望了。如果让你删掉一个最"心烦"的功能，你会选哪个？',
+    surveyQ4high:'这里是许愿池：只要增加 [XXX] 功能，我愿意现在就掏钱订阅',
+    surveySubmit:'提交反馈', surveyThanks:'感谢你的反馈！我们会认真改进 🙏',
+    langLabels:['🇨🇳 中文','🇺🇸 English','🇯🇵 日本語'],
+  },
+  en: {
+    title:'Noiz Support', online:'● Online',
+    welcome:"Hi! I'm Noiz's support assistant. How can I help you today?",
+    placeholder:'Type your question, press Enter…', copied:'Copied!',
+    chips:['How to get an invoice?','How to use the API?','How to cancel subscription?','Refund policy?','User satisfaction survey ✦'],
+    faqLabel:'Quick questions',
+    fbTitle:'Need more help?', fbBody:'This needs human assistance. Please reach us via:',
+    fbEmail:'Email support contact@noiz.ai', fbFeedback:'Submit Feedback',
+    fbHint:'💡 Feedback form is best for: bugs, AI issues, feature requests',
+    fbCopy:'Copy my question', netErr:'A network error occurred. Please try again.',
+    surveyTitle:'User Satisfaction Survey',
+    surveyQ1:'How many stars would you give NOIZ?',
+    surveyQ2:'How would you rate our Text-to-Speech experience?',
+    surveyQ2a:'A Human-like naturalness (1-5)', surveyQ2b:'B Intonation and pausing (1-5)',
+    surveyQ2c:'C Voice clarity (1-5)', surveyQ2d:'D Pronunciation accuracy (1-5)',
+    surveyQ2e:'E Others (feel free to share your rants or raves!)',
+    surveyQ3:'What do you think of our Voice Design and Audio Gen features?',
+    surveyQ3a:"Loved them! I'm a power user.", surveyQ3b:'Used them, but results were just okay.',
+    surveyQ3c:"Used them, but I don't really need them.", surveyQ3d:"Haven't used them (tell us why)",
+    surveyQ4low:'Sorry to hear that. If you could delete one frustrating feature, which would it be?',
+    surveyQ4high:"Make a wish! I'd subscribe RIGHT NOW if Noiz added [___] feature.",
+    surveySubmit:'Submit', surveyThanks:"Thank you for your feedback! We'll work on improving 🙏",
+    langLabels:['🇨🇳 中文','🇺🇸 English','🇯🇵 日本語'],
+  },
+  ja: {
+    title:'Noiz サポート', online:'● オンライン',
+    welcome:'こんにちは！Noiz サポートアシスタントです。何かお手伝いできますか？',
+    placeholder:'質問を入力してEnterキーで送信…', copied:'コピーしました',
+    chips:['請求書の発行方法は？','APIの使い方は？','サブスクリプションの解約方法は？','返金ポリシーは？','ユーザー満足度調査 ✦'],
+    faqLabel:'よくある質問',
+    fbTitle:'さらにサポートが必要ですか？', fbBody:'この件はサポートスタッフが対応します。以下からご連絡ください：',
+    fbEmail:'メールサポート contact@noiz.ai', fbFeedback:'フィードバックを送る',
+    fbHint:'💡 フィードバックフォームはバグ・AI異常・機能要望に最適です',
+    fbCopy:'質問をコピー', netErr:'ネットワークエラーが発生しました。後でもう一度お試しください。',
+    surveyTitle:'ユーザー満足度調査',
+    surveyQ1:'NOIZを評価するとしたら、星いくつですか？',
+    surveyQ2:'音声合成（TTS）の品質をどのように評価しますか？',
+    surveyQ2a:'A 人間のような自然さ（1-5点）', surveyQ2b:'B 抑揚と間の取り方（1-5点）',
+    surveyQ2c:'C 音声の明瞭さ（1-5点）', surveyQ2d:'D 読み・発音の正確さ（1-5点）',
+    surveyQ2e:'E その他（改善点や応援メッセージなど）',
+    surveyQ3:'「音色設計」や「音声生成」などの機能はいかがでしたか？',
+    surveyQ3a:'使いこなしています（ヘビーユーザーです）', surveyQ3b:'使ってみましたが、効果はまずまずでした',
+    surveyQ3c:'使ってみましたが、自分には必要ありませんでした', surveyQ3d:'使っていません（理由を記入）',
+    surveyQ4low:'ご期待に沿えず申し訳ありません。一番イライラする機能を消せるとしたら、どれを選びますか？',
+    surveyQ4high:'ここは「願いの泉」です：もし [XXX] という機能が追加されたら、今すぐサブスクリプションに登録します！',
+    surveySubmit:'送信する', surveyThanks:'フィードバックありがとうございます！改善に努めます 🙏',
+    langLabels:['🇨🇳 中文','🇺🇸 English','🇯🇵 日本語'],
+  }
+};
+
+var SYSTEM_PROMPTS = {
+  zh: '你是 Noiz AI 的站内客服 chatbot，目标是帮助用户快速解决常见问题，并在无法解决时，引导用户通过官方渠道反馈。\n\n⚠️ 重要：回复应简洁、自然，不要生成邮件格式。\n\n# 职责\n1. 直接解决用户问题（优先）2. 信息不足时追问1次 3. 无法解决时输出 resolved=false\n\n# 分类\n1.退款 2.取消订阅 3.订阅 4.API 5.发票 6.删除账号 7.积分\n\n# 策略\n命中分类+清晰 → 直接回答，简洁，最多3条。信息不足 → 追问1次。FAQ → 简化回答。\nresolved=false 触发条件：强烈情绪、涉及具体订单/账号/金额、需后台查询、FAQ无法覆盖、不确定答案。\nresolved=false 时 reply 固定为：我这边可能无法完全解决你的问题，需要人工进一步协助。\\n\\n请在反馈中提供：账号邮箱、问题描述、相关截图，我们会尽快帮你处理。\n\n# 知识库\n退款：购买后7天内且积分未使用可退款；申请退款发邮件到 contact@noiz.ai 附账号邮箱+订单截图+Credits页截图。\n取消订阅：进入「订阅」→「订阅详情」→ 取消订阅；当前周期到期后停止续费。\n订阅：创作页左侧点「Upgrade」，支持银联信用卡（需支持境外支付）和支付宝；支付失败可换网络或VPN。\nAPI：开发者平台 https://developers.noiz.ai/ 获取API key、查看文档。\n发票：开发者平台 → 账单 → 概览 → 最近发票。\n删除账号：发邮件到 contact@noiz.ai 写明确认删除+账号邮箱。\n积分：先重新登录/刷新/确认订阅Active；仍有问题发账号+截图到 contact@noiz.ai。\nFAQ：读音错误用同音字替换；频率限制等几分钟；长文1000字以内分段；停顿用标点或停顿功能；语速0.9-1.1；杂音切v1或重生成；克隆音色8-13秒安静环境录；上传失败转mp3/wav；导出失败换Chrome/刷新；Credits约1汉字=2积分；支付未到账等5-10分钟。\n\n# 输出格式\n每次回复必须是合法JSON：{"resolved":true,"reply":"..."} 或 {"resolved":false,"reply":"..."}，不要输出JSON以外的内容。',
+
+  en: 'You are Noiz AI\'s in-product customer support chatbot. Help users quickly, guide to official channels when unable to resolve.\n\nKeep replies concise and natural, like a product assistant. No email formatting.\n\n# Responsibilities\n1. Solve directly (priority) 2. Ask follow-up if needed (max once) 3. Output resolved=false if unable\n\n# Categories\n1.refund 2.cancel subscription 3.subscribe 4.API 5.invoice 6.delete account 7.credits\n\n# Strategy\nCategory match + clear → answer directly, max 3 points. Insufficient info → ask once. FAQ → simplified.\nresolved=false triggers: strong emotion, specific order/account/amount, needs backend lookup, not in FAQ, unsure.\nWhen resolved=false, reply must be: "I may not be able to fully resolve this and it needs human assistance.\\n\\nPlease provide: account email, issue description, and relevant screenshots. We\'ll help you as soon as possible."\n\n# Knowledge base\nRefund: Within 7 days of purchase AND credits unused. Email contact@noiz.ai with account email + order screenshot + Credits page screenshot.\nCancel: Subscription → Subscription Details → Cancel. Access continues until end of billing period.\nSubscribe: Click Upgrade on creation page left sidebar. Supports UnionPay (overseas payments enabled) and Alipay. If fails, try switching network or VPN.\nAPI: Developer platform https://developers.noiz.ai/ for API key and docs.\nInvoice: Developer platform → Billing → Overview → Recent Invoices.\nDelete account: Email contact@noiz.ai with confirmation + account email.\nCredits: Try re-login/refresh/check Active status first; if persists email account+screenshots to contact@noiz.ai.\nFAQ: Mispronunciation use phonetic substitutes; rate limit wait few minutes; long text under 1000 chars; pause via punctuation; speed 0.9-1.1; noise switch v1 or regenerate; clone voice 8-13s quiet recording; upload fail convert mp3/wav; export fail try Chrome/refresh; ~2 credits per Chinese char; payment delay wait 5-10min.\n\n# Output format\nEvery reply must be valid JSON: {"resolved":true,"reply":"..."} or {"resolved":false,"reply":"..."}. No text outside JSON.',
+
+  ja: 'あなたはNoiz AIのカスタマーサポートチャットボットです。よくある問題を素早く解決し、できない場合は公式サポートに誘導してください。\n\n返答は簡潔で自然に。メール形式は不可。\n\n# 責務\n1. 直接解決（優先）2. 情報不足なら1回追加質問 3. 解決不可なら resolved=false\n\n# カテゴリ\n1.返金 2.解約 3.サブスクリプション 4.API 5.請求書 6.アカウント削除 7.クレジット\n\n# 方針\nカテゴリ一致+明確 → 直接回答、最大3点。情報不足 → 1回質問。FAQ → 簡略化。\nresolved=false 条件：強い感情、具体的な注文/アカウント/金額、バックエンド照会必要、FAQ対応不可、不確か。\nresolved=false 時のreply固定：「こちらでは完全に解決できない可能性があり、担当者の対応が必要です。\\n\\nアカウントメール、問題の説明、関連スクリーンショットをご提供ください。できるだけ早く対応いたします。」\n\n# ナレッジベース\n返金：購入後7日以内かつクレジット未使用。contact@noiz.aiにアカウントメール+注文スクリーンショット+Creditsページ送付。\n解約：サブスクリプション→詳細→キャンセル。現在の期間終了まで利用可能。\nサブスクリプション：左サイドバーのUpgradeをクリック。銀聯カード（海外決済対応）またはAlipay。失敗時はネットワーク切替またはVPN。\nAPI：https://developers.noiz.ai/ でAPIキー取得・ドキュメント確認。\n請求書：開発者プラットフォーム→請求→概要→最近の請求書。\nアカウント削除：contact@noiz.aiに削除確認+アカウントメール送付。\nクレジット：再ログイン/更新/Active確認後も問題ならcontact@noiz.aiに送付。\nFAQ：発音は同音字で代替；レート制限は数分待機；長文1000字以内；停止は句読点利用；速度0.9-1.1；ノイズはv1切替；クローン音声8-13秒静音環境；アップロードはmp3/wav変換；エクスポートはChrome/更新；漢字1文字≈2クレジット；支払い未反映は5-10分待機。\n\n# 出力フォーマット\n有効なJSON形式のみ：{"resolved":true,"reply":"..."} または {"resolved":false,"reply":"..."}。JSON以外のテキスト不可。'
+};
+
+/* ─── State ─── */
+var state = {
+  open:false, lang:'zh', messages:[], isTyping:false,
+  unread:1, toastVisible:false, history:[], langMenuOpen:false,
+  pos:null,
+  survey:{q1:0,q2a:0,q2b:0,q2c:0,q2d:0,q2e:'',q3:'',q4:''}
+};
+
+function ts(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(s){ return esc(s).replace(/\n/g,'<br>').replace(/`([^`]+)`/g,'<code class="ic">$1</code>'); }
+function L(k){ return I18N[state.lang][k]||''; }
+function botIcon(){ return '<svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>'; }
+
+/* ─── API ─── */
+async function callAPI(userText){
+  state.history.push({role:'user',content:userText});
+  // ⚠️ 上线前改这里：换成后端接口地址，删掉 x-api-key 行
+  var resp = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYSTEM_PROMPTS[state.lang],messages:state.history})
+  });
+  var data = await resp.json();
+  var raw = (data.content||[]).map(function(b){return b.type==='text'?b.text:'';}).join('');
+  var parsed;
+  try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}
+  catch(e){parsed={resolved:false,reply:raw||L('netErr')};}
+  state.history.push({role:'assistant',content:raw});
+  return parsed;
+}
+
+/* ─── Survey ─── */
+function buildSurveyHtml(){
+  var sv=state.survey, isLow=sv.q1>0&&sv.q1<=3, isHigh=sv.q1>=4;
+  // Q1 stars
+  var s1=''; for(var i=1;i<=5;i++) s1+='<button class="star'+(i<=sv.q1?' on':'')+'" data-q1="'+i+'">★</button>';
+  // Q2 sub-ratings
+  var q2keys=['q2a','q2b','q2c','q2d'], q2labels=['surveyQ2a','surveyQ2b','surveyQ2c','surveyQ2d'];
+  var s2='';
+  for(var j=0;j<4;j++){
+    var rs=''; for(var k=1;k<=5;k++) rs+='<button class="rstar'+(k<=(sv[q2keys[j]]||0)?' on':'')+'" data-q2k="'+q2keys[j]+'" data-q2v="'+k+'">★</button>';
+    s2+='<div class="survey-row"><div class="survey-label">'+esc(L(q2labels[j]))+'</div><div class="rating-row">'+rs+'</div></div>';
+  }
+  // Q3 options
+  var q3opts=['surveyQ3a','surveyQ3b','surveyQ3c','surveyQ3d'];
+  var s3='<div class="qchips" style="flex-direction:column;align-items:flex-start;margin-top:4px">';
+  for(var m=0;m<4;m++){
+    var act=sv.q3===q3opts[m];
+    s3+='<button class="qchip" style="'+(act?'background:#111;color:#fff;border-color:#111;':'')+'" data-q3="'+q3opts[m]+'">'+esc(L(q3opts[m]))+'</button>';
+  }
+  s3+='</div>';
+  // Q4
+  var q4label = isLow?L('surveyQ4low'):(isHigh?L('surveyQ4high'):'');
+  var s4 = q4label?'<div class="survey-row"><div class="survey-label">'+esc(q4label)+'</div><textarea class="survey-textarea" id="sq4" rows="2">'+esc(sv.q4||'')+'</textarea></div>':'';
+
+  return '<div class="survey-card" id="sv-card">'
+    +'<h4>'+esc(L('surveyTitle'))+'</h4>'
+    +'<div class="survey-row"><div class="survey-label">'+esc(L('surveyQ1'))+'</div><div class="stars">'+s1+'</div></div>'
+    +'<div class="survey-row"><div class="survey-label">'+esc(L('surveyQ2'))+'</div>'+s2+'</div>'
+    +'<div class="survey-label">'+esc(L('surveyQ2e'))+'</div>'
+    +'<textarea class="survey-textarea" id="sq2e" rows="2">'+esc(sv.q2e||'')+'</textarea>'
+    +'<div class="survey-row"><div class="survey-label">'+esc(L('surveyQ3'))+'</div>'+s3+'</div>'
+    +s4
+    +'<button class="survey-submit" id="sv-submit">'+esc(L('surveySubmit'))+'</button>'
+    +'</div>';
+}
+
+function bindSurveyEvents(){
+  document.querySelectorAll('.star').forEach(function(b){
+    b.onclick=function(){state.survey.q1=parseInt(b.getAttribute('data-q1'));patchSurvey();};
+  });
+  document.querySelectorAll('.rstar').forEach(function(b){
+    b.onclick=function(){state.survey[b.getAttribute('data-q2k')]=parseInt(b.getAttribute('data-q2v'));patchSurvey();};
+  });
+  document.querySelectorAll('[data-q3]').forEach(function(b){
+    b.onclick=function(){state.survey.q3=b.getAttribute('data-q3');patchSurvey();};
+  });
+  var e=document.getElementById('sq2e'); if(e) e.oninput=function(){state.survey.q2e=this.value;};
+  var f=document.getElementById('sq4'); if(f) f.oninput=function(){state.survey.q4=this.value;};
+  var g=document.getElementById('sv-submit'); if(g) g.onclick=submitSurvey;
+}
+
+function patchSurvey(){
+  var card=document.getElementById('sv-card');
+  if(!card) return;
+  var tmp=document.createElement('div');
+  tmp.innerHTML=buildSurveyHtml();
+  card.parentNode.replaceChild(tmp.firstChild, card);
+  bindSurveyEvents();
+  scrollBottom();
+}
+
+function submitSurvey(){
+  for(var i=state.messages.length-1;i>=0;i--){
+    if(state.messages[i].role==='survey'){state.messages.splice(i,1);break;}
+  }
+  state.survey={q1:0,q2a:0,q2b:0,q2c:0,q2d:0,q2e:'',q3:'',q4:''};
+  state.messages.push({role:'bot',content:L('surveyThanks'),time:ts()});
+  render(); scrollBottom();
+}
+
+/* ─── Render helpers ─── */
+function renderFallback(userQ){
+  var safeQ=(userQ||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  var subj=encodeURIComponent('[Noiz Support] '+((userQ||'').substring(0,60)));
+  return '<div class="mr b" style="align-items:flex-start"><div class="mi b">'+botIcon()+'</div>'
+    +'<div class="fb-card"><h4>'+esc(L('fbTitle'))+'</h4><p>'+esc(L('fbBody'))+'</p>'
+    +'<a href="mailto:contact@noiz.ai?subject='+subj+'" class="fbb dk"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>'+esc(L('fbEmail'))+'</a>'
+    +'<a href="https://noiz.ai/contact" target="_blank" class="fbb lt"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>'+esc(L('fbFeedback'))+'</a>'
+    +'<p class="fb-hint">'+esc(L('fbHint'))+'</p>'
+    +'<button class="fbb gh cq-btn" data-q="'+safeQ+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>'+esc(L('fbCopy'))+'</button>'
+    +'</div></div>';
+}
+
+function renderMsg(m){
+  if(m.role==='fallback') return renderFallback(m.userQ);
+  if(m.role==='survey') return '<div class="mr b" style="align-items:flex-start"><div class="mi b">'+botIcon()+'</div>'+buildSurveyHtml()+'</div><div class="mt">'+m.time+'</div>';
+  var isUser=m.role==='user';
+  var bubbleContent='<div style="font-size:13px;line-height:1.55;color:'+(isUser?'#fff':'#111')+'">'+fmt(m.content)+'</div>';
+  if(m.chips){
+    // Split last chip (survey) from regular chips
+    var regularChips=m.chips.slice(0,-1);
+    var surveyChip=m.chips[m.chips.length-1];
+    var gridHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px">';
+    for(var i=0;i<regularChips.length;i++){
+      gridHtml+='<button class="qchip" data-chip="'+esc(regularChips[i])+'" style="border-radius:8px;text-align:left;white-space:normal;line-height:1.3">'+esc(regularChips[i])+'</button>';
+    }
+    gridHtml+='</div>';
+    // Survey chip full width below
+    var surveyHtml='<button class="qchip survey-chip" data-chip="'+esc(surveyChip)+'" style="width:100%;margin-top:5px;border-radius:8px;text-align:center;justify-content:center">'+esc(surveyChip)+'</button>';
+    var faqLabel='<div style="font-size:11px;color:#aaa;margin-top:10px;margin-bottom:4px;font-weight:500;letter-spacing:0.03em">'+esc(L('faqLabel'))+'</div>';
+    bubbleContent+= faqLabel + gridHtml + surveyHtml;
+  }
+  var bubble='<div class="mb" style="max-width:268px">'+bubbleContent+'</div>';
+  var inner='<div class="mr '+(isUser?'u':'b')+'">'
+    +(!isUser?'<div class="mi b">'+botIcon()+'</div>':'')
+    +'<div>'+bubble+'</div>'
+    +(isUser?'<div class="mi u2">You</div>':'')
+    +'</div>';
+  return inner+'<div class="mt">'+m.time+'</div>';
+}
+
+function scrollBottom(){ var el=document.getElementById('cwm'); if(el) el.scrollTop=el.scrollHeight; }
+
+/* ─── Main render ─── */
+function render(){
+  var old=document.querySelector('.chat-window'); if(old) old.remove();
+  var oldW=document.querySelector('.cw-wrap'); if(oldW) oldW.remove();
+
+  if(state.open){
+    var win=document.createElement('div');
+    win.className='chat-window';
+    var langMenu='';
+    if(state.langMenuOpen){
+      langMenu='<div class="lang-menu">';
+      var langs=['zh','en','ja'];
+      var labels=L('langLabels');
+      for(var li=0;li<3;li++) langMenu+='<button class="lang-opt'+(state.lang===langs[li]?' active':'')+'" data-lang="'+langs[li]+'">'+labels[li]+'</button>';
+      langMenu+='</div>';
+    }
+    win.innerHTML=
+      '<div class="cw-header">'
+      +'<div class="cw-av">'+botIcon()+'</div>'
+      +'<div class="cw-hi"><h3>'+esc(L('title'))+'</h3><p>'+esc(L('online'))+'</p></div>'
+      +'<div class="cw-hbtns">'
+      +'<div style="position:relative"><button class="cw-langbtn" id="langbtn">🌐</button>'+langMenu+'</div>'
+      +'<button class="cw-x" id="cwx">−</button>'
+      +'</div></div>'
+      +'<div class="cw-msgs" id="cwm">'
+      +state.messages.map(renderMsg).join('')
+      +(state.isTyping?'<div class="typ-r"><div class="mi b">'+botIcon()+'</div><div class="typ-b"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>':'')
+      +'</div>'
+      +'<div class="cw-inp">'
+      +'<div class="cw-toast'+(state.toastVisible?' show':'')+'" id="cwt">'+esc(L('copied'))+'</div>'
+      +'<textarea class="cw-ta" id="cwta" placeholder="'+esc(L('placeholder'))+'" rows="1"></textarea>'
+      +'<button class="cw-sb" id="cwsb"'+(state.isTyping?' disabled':'')+'><svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>'
+      +'</div>';
+    document.body.appendChild(win);
+    if(state.pos){
+      var bL=state.pos.left,bT=state.pos.top,bS=52,wW=window.innerWidth,wH=window.innerHeight,cwW=360,cwH=540,gap=12;
+      var cl=bL+bS-cwW; if(cl<8)cl=8; if(cl+cwW>wW-8)cl=wW-cwW-8;
+      var ct=bT-cwH-gap; if(ct<8)ct=bT+bS+gap; if(ct+cwH>wH-8)ct=wH-cwH-8;
+      win.style.left=cl+'px'; win.style.top=ct+'px'; win.style.right='auto'; win.style.bottom='auto';
+    }
+    scrollBottom();
+
+    document.getElementById('cwx').onclick=function(){state.open=false;render();};
+
+    // lang toggle
+    document.getElementById('langbtn').onclick=function(e){
+      e.stopPropagation();
+      state.langMenuOpen=!state.langMenuOpen;
+      render();
+    };
+    win.querySelectorAll('[data-lang]').forEach(function(btn){
+      btn.onclick=function(e){
+        e.stopPropagation();
+        var nl=btn.getAttribute('data-lang');
+        if(nl!==state.lang){state.lang=nl;state.history=[];state.messages=[];state.langMenuOpen=false;openChat();}
+        else{state.langMenuOpen=false;render();}
+      };
+    });
+    document.addEventListener('click',function cl(){state.langMenuOpen=false;render();document.removeEventListener('click',cl);});
+
+    // textarea
+    var ta=document.getElementById('cwta');
+    ta.focus();
+    ta.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';});
+    ta.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();}});
+    document.getElementById('cwsb').onclick=doSend;
+
+    // copy buttons
+    win.querySelectorAll('.cq-btn').forEach(function(btn){
+      btn.onclick=function(){
+        var txt=btn.getAttribute('data-q')||'';
+        try{navigator.clipboard.writeText(txt);}catch(e){var el=document.createElement('textarea');el.value=txt;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);}
+        state.toastVisible=true;render();setTimeout(function(){state.toastVisible=false;render();},2000);
+      };
+    });
+
+    // quick chips
+    win.querySelectorAll('[data-chip]').forEach(function(btn){
+      btn.onclick=function(){
+        var chip=btn.getAttribute('data-chip');
+        var chips=L('chips');
+        if(chip===chips[chips.length-1]){ openSurvey(); }
+        else{ doSend(chip); }
+      };
+    });
+
+    // survey events
+    bindSurveyEvents();
+  }
+
+  // toggle button
+  var wrap=document.createElement('div');
+  wrap.className='cw-wrap';
+  wrap.innerHTML='<button class="cw-tog" id="cwtog">'
+    +(state.open?'<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>':'<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>')
+    +'</button>'
+    +(!state.open&&state.unread>0?'<div class="cw-badge">'+state.unread+'</div>':'');
+  document.body.appendChild(wrap);
+
+  // Restore saved drag position
+  if(state.pos){
+    wrap.style.left=state.pos.left+'px'; wrap.style.top=state.pos.top+'px';
+    wrap.style.right='auto'; wrap.style.bottom='auto';
+  }
+
+  // Drag logic: track pointer movement, distinguish drag from click
+  var tog=document.getElementById('cwtog');
+  var dragging=false, moved=false, startX, startY, startLeft, startTop;
+
+  function startDrag(cx,cy){
+    dragging=true; moved=false;
+    var r=wrap.getBoundingClientRect();
+    startX=cx; startY=cy; startLeft=r.left; startTop=r.top;
+    wrap.style.left=startLeft+'px'; wrap.style.top=startTop+'px';
+    wrap.style.right='auto'; wrap.style.bottom='auto';
+  }
+  function moveDrag(cx,cy){
+    if(!dragging)return;
+    var dx=cx-startX, dy=cy-startY;
+    if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
+    wrap.style.left=Math.max(0,Math.min(window.innerWidth-56,startLeft+dx))+'px';
+    wrap.style.top=Math.max(0,Math.min(window.innerHeight-56,startTop+dy))+'px';
+  }
+  function posChatWin(){
+    var cw=document.querySelector('.chat-window');
+    if(!cw||!state.pos)return;
+    var bL=state.pos.left,bT=state.pos.top,bS=52;
+    var wW=window.innerWidth,wH=window.innerHeight;
+    var cwW=360,cwH=540,gap=12;
+    var cl=bL+bS-cwW; if(cl<8)cl=8; if(cl+cwW>wW-8)cl=wW-cwW-8;
+    var ct=bT-cwH-gap; if(ct<8)ct=bT+bS+gap; if(ct+cwH>wH-8)ct=wH-cwH-8;
+    cw.style.left=cl+'px'; cw.style.top=ct+'px';
+    cw.style.right='auto'; cw.style.bottom='auto';
+  }
+  function endDrag(){
+    if(!dragging)return; dragging=false;
+    var r=wrap.getBoundingClientRect();
+    state.pos={left:r.left,top:r.top};
+    posChatWin();
+  }
+
+  wrap.addEventListener('mousedown',function(e){startDrag(e.clientX,e.clientY);e.preventDefault();});
+  wrap.addEventListener('touchstart',function(e){startDrag(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  document.addEventListener('mousemove',function(e){moveDrag(e.clientX,e.clientY);});
+  document.addEventListener('touchmove',function(e){moveDrag(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  document.addEventListener('mouseup',endDrag);
+  document.addEventListener('touchend',endDrag);
+
+  tog.onclick=function(){ if(moved){moved=false;return;} state.open=!state.open;state.unread=0; if(state.open&&state.messages.length===0)openChat(); render(); };
+}
+
+function openChat(){
+  state.messages=[{role:'bot',content:L('welcome'),chips:L('chips'),time:ts()}];
+  render(); scrollBottom();
+}
+
+function openSurvey(){
+  state.survey={q1:0,q2a:0,q2b:0,q2c:0,q2d:0,q2e:'',q3:'',q4:''};
+  state.messages.push({role:'survey',time:ts()});
+  render(); scrollBottom();
+}
+
+async function doSend(prefill){
+  var ta=document.getElementById('cwta');
+  var text=(typeof prefill==='string'?prefill:(ta?ta.value:'')).trim();
+  if(!text||state.isTyping)return;
+  if(ta){ta.value='';ta.style.height='auto';}
+  state.messages.push({role:'user',content:text,time:ts()});
+  state.isTyping=true;
+  render();scrollBottom();
+  try{
+    var result=await callAPI(text);
+    state.isTyping=false;
+    state.messages.push({role:'bot',content:result.reply,time:ts()});
+    if(!result.resolved) state.messages.push({role:'fallback',userQ:text,time:ts()});
+  }catch(err){
+    state.isTyping=false;
+    state.messages.push({role:'bot',content:L('netErr'),time:ts()});
+  }
+  render();scrollBottom();
+}
+
+window.sendToBot=function(text){
+  if(!state.open){state.open=true;state.unread=0;if(state.messages.length===0)openChat();render();setTimeout(function(){doSend(text);},300);}
+  else{doSend(text);}
+};
+
+render();
+})();
+</script>
+<!-- Noiz Chatbot Widget: END -->
+</body></html>
