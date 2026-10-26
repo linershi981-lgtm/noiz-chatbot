@@ -202,8 +202,8 @@ function botIcon(){ return '<svg width="13" height="13" viewBox="0 0 24 24" fill
 /* ─── API ─── */
 async function callAPI(userText){
   state.history.push({role:'user',content:userText});
-  // ⚠️ 上线前改这里：换成后端接口地址，删掉 x-api-key 行
-  var resp = await fetch('https://api.anthropic.com/v1/messages',{
+  // ✅ 已接入 Netlify Functions 后端代理，API Key 安全存储在服务器端
+  var resp = await fetch('https://spiffy-clafoutis-ba6799.netlify.app/.netlify/functions/chat',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYSTEM_PROMPTS[state.lang],messages:state.history})
